@@ -8,6 +8,7 @@ use App\Models\Lokasi;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class BarangController extends Controller implements HasMiddleware
@@ -18,9 +19,7 @@ class BarangController extends Controller implements HasMiddleware
             new middleware('permission:delete barang', only: ['destroy']),
         ];
     }
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
         $search = $request->search;
@@ -35,46 +34,59 @@ class BarangController extends Controller implements HasMiddleware
         return view('barang.index', compact('barangs'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $kategori = Kategori::all();
         $lokasi = Lokasi::all();
+        $barang = new Barang ();
 
-        $barang = new Barang();
-
-        return view('barang.create', compact('barang', 'kategori', 'lokasi'));
+        return view('barang.create', compact ('barang', 'kategori', 'lokasi'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate ([
-            'kode_barang' => 'required|string|max: 50|unique:barangs,kode_barang',
+            'kode_barang' => 'required|string|max:50|unique:barangs,kode_barang',
             'nama_barang' => 'required|string|max:150',
             'kategori_id' => 'required|exists:kategoris,id',
             'lokasi_id' => 'required|exists:lokasis,id',
-            'jumlah' => 'required|integer|min:0',
+            'jumlah' => 'required_if:is_per_unit,0|integer|min:0',
             'satuan' => 'required|string|max:20',
-            'kondisi' => 'required|in:Baik,Rusak Ringan,Rusak Berat',
+            'is_per_unit' => 'boolean',
+            'dapat_dipinjam' => 'boolean',
+            'kondisi' => 'required|in:Baik,Rusak ringan,Rusak berat',
+            'sumber_dana' => 'required|in:Pemerintah,Swadaya,Donatur',
             'tanggal_pengadaan' => 'required|date',
             'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        // Jika barang per unit, set jumlah = 0 (akan dihitung dari detail_barangs)
+        if ($request->has('is_per_unit') && $request->is_per_unit) {
+            $validated['jumlah'] = 0;
+            $validated['is_per_unit'] = true;
+        } else {
+            $validated['is_per_unit'] = false;
+        }
+
+        // Set dapat_dipinjam
+        $validated['dapat_dipinjam'] = $request->has('dapat_dipinjam') ? true : false;
+
         if ($request->hasFile('gambar')) {
             $validated['gambar'] = $request->file('gambar')->store(null, 'gambar-barang');
         }
-        Barang:: create ($validated);
-        return redirect ()->route('barang.index')->with('success', 'Data barang berhasil ditambahkan.');
+
+        $barang = Barang::create($validated);
+
+        // Redirect ke kelola unit jika barang per unit
+        if ($barang->is_per_unit) {
+            return redirect()->route('barang.units.index', $barang)
+                ->with('success', 'Data barang berhasil ditambahkan. Silakan tambahkan unit barang.');
+        }
+
+        return redirect()->route('barang.index')
+            ->with('success', 'Data barang berhasil ditambahkan.');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Barang $barang)
     {
         $barang->load(['kategori', 'lokasi']);
@@ -82,9 +94,6 @@ class BarangController extends Controller implements HasMiddleware
         return view('barang.show', compact('barang'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Barang $barang)
     {
         $kategori = Kategori::all();
@@ -93,22 +102,33 @@ class BarangController extends Controller implements HasMiddleware
         return view('barang.edit', compact('barang', 'kategori', 'lokasi'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Barang $barang)
     {
         $validated = $request->validate([
-            'kode_barang'     => 'required|string|max:50|unique:barangs,kode_barang,' . $barang->id,
-            'nama_barang'     => 'required|string|max:150',
-            'kategori_id'     => 'required|exists:kategoris,id',
-            'lokasi_id'       => 'required|exists:lokasis,id',
-            'jumlah'          => 'required|integer|min:0',
-            'satuan'          => 'required|string|max:20',
-            'kondisi'         => 'required|in:Baik,Rusak Ringan,Rusak Berat',
+            'kode_barang' => 'required|string|max:50|unique:barangs,kode_barang,' . $barang->id,
+            'nama_barang' => 'required|string|max:150',
+            'kategori_id' => 'required|exists:kategoris,id',
+            'lokasi_id' => 'required|exists:lokasis,id',
+            'jumlah' => 'required_if:is_per_unit,0|integer|min:0',
+            'satuan' => 'required|string|max:20',
+            'is_per_unit' => 'boolean',
+            'dapat_dipinjam' => 'boolean', // TAMBAHKAN INI
+            'kondisi' => 'required|in:Baik,Rusak ringan,Rusak berat',
+            'sumber_dana' => 'required|in:Pemerintah,Swadaya,Donatur',
             'tanggal_pengadaan' => 'required|date',
-            'gambar'          => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle perubahan dari per unit ke bukan per unit atau sebaliknya
+        if ($request->has('is_per_unit') && $request->is_per_unit) {
+            $validated['jumlah'] = 0;
+            $validated['is_per_unit'] = true;
+        } else {
+            $validated['is_per_unit'] = false;
+        }
+
+        // TAMBAHKAN INI: Set dapat_dipinjam
+        $validated['dapat_dipinjam'] = $request->has('dapat_dipinjam') ? true : false;
 
         if ($request->hasFile('gambar')) {
             if ($barang->gambar) {
@@ -123,13 +143,10 @@ class BarangController extends Controller implements HasMiddleware
         return redirect()->route('barang.index')->with('success', 'Data barang berhasil diperbarui.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Barang $barang)
     {
         if ($barang->gambar) {
-            Storage::disk('gamabar-barang')->delete($barang->gambar);
+            Storage::disk('gambar-barang')->delete($barang->gambar);
         }
         $barang->delete();
         return redirect()->route('barang.index')->with('success', 'Data barang berhasil dihapus.');
@@ -138,12 +155,12 @@ class BarangController extends Controller implements HasMiddleware
     public function cetakLaporan() {
         $barangs = Barang::with(['kategori', 'lokasi'])->get();
         $data = [
-            'title' => 'Lapporan Data Barang Inventaris',
+            'title' => 'Laporan Data Barang Inventaris',
             'date' => date('d F Y'),
             'barangs' => $barangs
         ];
 
         $pdf = Pdf::loadView('barang.laporan', $data);
-        return $pdf->stream('laporan-invrntaris-barang.pdf');
+        return $pdf->stream('laporan-inventaris-barang.pdf');
     }
 }

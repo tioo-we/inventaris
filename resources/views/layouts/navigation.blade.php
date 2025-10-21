@@ -15,36 +15,37 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <!-- Left Side -->
             <ul class="navbar-nav me-auto">
-                @php
+                @php 
                 $navs = [
-                ['route' => 'dashboard', 'name' => 'Dashboard'],
-                ['route' => 'barang.index', 'name' => 'Barang'],
-                ['route' => 'lokasi.index', 'name' => 'Lokasi'],
-                ['route' => 'kategori.index', 'name' => 'Kategori'],
-                ['route' => 'user.index', 'name' => 'User', 'role' => 'admin'],
+                    ['route' => 'dashboard', 'name' => 'Dashboard'],
+                    ['route' => 'barang.index', 'name' => 'Barang'],
+                    ['route' => 'peminjaman.index', 'name' => 'Peminjaman'],
+                    ['route' => 'lokasi.index', 'name' => 'Lokasi'],
+                    ['route' => 'kategori.index', 'name' => 'Kategori'],
+                    ['route' => 'user.index', 'name' => 'User', 'role' => 'admin'],
                 ];
                 @endphp
 
                 @foreach ($navs as $nav)
-                @php
-                extract($nav);
-                @endphp
+                    @php
+                        extract($nav);
+                    @endphp
 
-                @if (isset($role))
-                @role($role)
-                <li class="nav-item">
-                    <x-nav-link :active="request()->routeIs($route)" :href="route($route)">
-                        {{ __($name) }}
-                    </x-nav-link>
-                </li>
-                @endrole
-                @else
-                <li class="nav-item">
-                    <x-nav-link :active="request()->routeIs($route)" :href="route($route)">
-                        {{ __($name) }}
-                    </x-nav-link>
-                </li>
-                @endif
+                    @if (isset($role))
+                        @role($role)
+                            <li class="nav-item">
+                                <x-nav-link :active="request()->routeIs($route)" :href="route($route)">
+                                    {{ ($name) }}
+                                </x-nav-link>
+                            </li>
+                        @endrole
+                    @else 
+                    <li class="nav-item">
+                        <x-nav-link :active="request()->routeIs($route)" :href="route($route)">
+                            {{ ($name) }}
+                        </x-nav-link>
+                    </li>
+                    @endif
                 @endforeach
             </ul>
 

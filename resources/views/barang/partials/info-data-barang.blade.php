@@ -32,6 +32,21 @@
             </td>
         </tr>
         <tr>
+            <th>Sumber Dana</th>
+            <td>
+                @php
+                    $sumberDanaBadge = 'bg-primary';
+                    if ($barang->sumber_dana == 'Swadaya') {
+                        $sumberDanaBadge = 'bg-info';
+                    }
+                    if ($barang->sumber_dana == 'Donatur') {
+                        $sumberDanaBadge = 'bg-secondary';
+                    }
+                @endphp
+                <span class="badge {{ $sumberDanaBadge }}">{{ $barang->sumber_dana }}</span>
+            </td>
+        </tr>
+        <tr>
             <th>Tanggal Pengadaan</th>
             <td>{{ \Carbon\Carbon::parse($barang->tanggal_pengadaan)->translatedFormat('d F Y') }}</td>
         </tr>

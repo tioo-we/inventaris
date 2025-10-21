@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\User;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,25 +14,25 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // User::factory(10)->create();
-
-       $this->call([
-            RolePermissionSeeder::class,
-            KategoriSeeder::class,
-            LokasiSeeder::class,
-            BarangSeeder::class,
+        $this->call([
+           RolePermissionSeeder::class,
+           KategoriSeeder::class,
+           LokasiSeeder::class,
+           BarangSeeder::class,
+           DetailBarangSeeder::class, // TAMBAHKAN INI
         ]);
 
         $admin = User::factory()->create([
-            'name' => 'Administrator',
-            'email' => 'admin@mail.com',
+            'name' => 'Adiministrator',
+            'email' => 'admin@email.com',
         ]);
 
         $petugas = User::factory()->create([
             'name' => 'Petugas Inventaris',
-            'email' => 'petugas@mail.com',
+            'email' => 'petugas@email.com',
         ]);
 
-        $admin->assignRole('admin'); 
+        $admin->assignRole('admin');
         $petugas->assignRole('petugas');
     }
 }

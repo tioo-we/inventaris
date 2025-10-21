@@ -61,7 +61,7 @@ return [
         ],
         'gambar-barang' => [
             'driver' => 'local',
-            'root' => public_path('gambar_barang'),
+            'root' => public_path('gambar-barang'),
             'url' => env('APP_URL') . '/gambar-barang',
             'visibility' => 'public',
             'throw' => false,
